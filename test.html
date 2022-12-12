@@ -1,0 +1,309 @@
+<html>
+<head>
+<style>
+html {
+	font-size:40px;
+}
+#pros {
+	color:#00a;
+}
+#cons {
+	color:#a00;
+}
+#name {
+	width:600px;
+	height:100px;
+	font-size:50px;
+}
+</style>
+</head>
+<body>
+<input type="text" id = 'name'onKeypress="javascript:if(event.keyCode==13) {run()}">
+<div id = 'mark'></div>
+<div id = 'pros'></div><br>
+<div id = 'cons'></div>
+</body>
+<script>
+var key = 'bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IktYMk40TkRDSTJ5NTA5NWpjTWk5TllqY2lyZyIsImtpZCI6IktYMk40TkRDSTJ5NTA5NWpjTWk5TllqY2lyZyJ9.eyJpc3MiOiJodHRwczovL2x1ZHkuZ2FtZS5vbnN0b3ZlLmNvbSIsImF1ZCI6Imh0dHBzOi8vbHVkeS5nYW1lLm9uc3RvdmUuY29tL3Jlc291cmNlcyIsImNsaWVudF9pZCI6IjEwMDAwMDAwMDAwMDExMzEifQ.D5m1PFNiFgLvDXHnQpDkNRUkb-uEjnRwWQ4W4QOUxrlqgovq14C_aYJLV_bPpzcIta1GR1LkgWDYogS72TwIvSS4BMSjqjkUSmWRGo9fmGZihYV-f8Nyu4bjEYhAvRtc7jE-5WFOEHR5-c0CMHUO_NU9fkRUnMFI5v49a3Gn3Rml4XDFOrWj6eou1OdJ775wP-00Oq_1CGfy8rNPQady6NoIoUjDTi7I3v_Ww7e5TIJpnN88FWIWDURgS95FHQf-z8kUkEA77TFKPt8nfDWlF_SCJ_8KzeFqD5x1zrKhvkx4ptPQfFYK7q8x5572-6D4BQJtEcCHIYW-f7Xyw_KFCQ'
+var nickname;
+var data, mark, pros, cons;
+
+function run() {
+	data = {};
+	mark = {'일리배럭':0, '최고레벨':0, '딜폿갯수':"", '레벨':0, '무기레벨':0, '서폿?':false};
+	pros = []
+	cons = []
+	var a = document.getElementById('name').value
+	nickname = a;
+	getSiblings();
+}
+function end() {
+	var a = document.getElementById('pros')
+	a.innerHTML = pros
+	var a = document.getElementById('cons')
+	a.innerHTML = cons
+	var a = document.getElementById('mark')
+	if(mark['서폿?']) {
+		a.innerHTML = "서폿 <br>"
+	} else {
+		a.innerHTML = "딜러 <br>"
+	}
+	a.innerHTML += "레벨 : "+mark['레벨']
+	if(!mark['서폿?'])a.innerHTML += " (무기"+mark['무기레벨']+")"
+	a.innerHTML += "<br>최고레벨 : "+mark['최고레벨']+"<br>일리배럭 : "+mark['일리배럭']+"<br>딜폿갯수 : "+mark['딜폿갯수']+"<br><br>"
+}
+function getSiblings() {
+	var xhr = new XMLHttpRequest();
+	xhr.responseType = 'json'
+	xhr.open("GET", 'https://developer-lostark.game.onstove.com/characters/'+nickname+'/siblings', true);
+	xhr.setRequestHeader('accept', 'application/json');
+	xhr.setRequestHeader('authorization', key);
+	xhr.onreadystatechange = function(event) {
+		if(xhr.readyState==4) {
+			data.siblings = event.currentTarget.response
+			checkSiblings()
+			getProfiles()
+		}
+	};
+	xhr.send();
+function checkSiblings() {
+	var dps = 0
+	var sup = 0
+	for(i=0; i<data.siblings.length; i++) {
+		var level = parseInt(data.siblings[i].ItemAvgLevel.replace(/,/g,''))
+		var cls = data.siblings[i].CharacterClassName
+		if (level>1579) mark['일리배럭']++
+		if (level>mark['최고레벨']) mark['최고레벨'] = level
+		if (level>1579) {
+			if (cls =="홀리나이트" ||cls =="바드" ||cls =="도화가") {
+				sup++
+			} else {
+				dps++
+			}
+		}
+	}
+	mark['딜폿갯수'] = '딜'+dps+' 폿'+sup
+}
+}
+function getProfiles() {
+	var xhr = new XMLHttpRequest();
+	xhr.responseType = 'json'
+	xhr.open("GET", 'https://developer-lostark.game.onstove.com/armories/characters/'+nickname+'/profiles', true);
+	xhr.setRequestHeader('accept', 'application/json');
+	xhr.setRequestHeader('authorization', key);
+	xhr.onreadystatechange = function(event) {
+		if(xhr.readyState==4) {
+			data.profiles = event.currentTarget.response
+			checkProfiles()
+			getEquipment()
+		}
+	};
+	xhr.send();
+function checkProfiles() {
+	var p = data.profiles
+	if(p.CharacterClassName=="바드"|p.CharacterClassName=="홀리나이트"|p.CharacterClassName=="도화가") {
+		mark['서폿?'] = true
+	}
+	if(p['CharacterLevel']<60) {
+		cons.push('전투레벨 '+p['CharacterLevel'])
+	}
+	if(p['ExpeditionLevel']<60) {
+		cons.push('원정대 레벨 '+p['ExpeditionLevel'])
+	}
+	mark['레벨'] = parseInt(p['ItemMaxLevel'].replace(/,/g,''))
+	if(mark['레벨']==mark['최고레벨'])pros.push("본캐")
+}
+}
+function getEquipment() {
+	var xhr = new XMLHttpRequest();
+	xhr.responseType = 'json'
+	xhr.open("GET", 'https://developer-lostark.game.onstove.com/armories/characters/'+nickname+'/equipment', true);
+	xhr.setRequestHeader('accept', 'application/json');
+	xhr.setRequestHeader('authorization', key);
+	xhr.onreadystatechange = function(event) {
+		if(xhr.readyState==4) {
+			data.equipment = event.currentTarget.response
+			checkEquipment()
+			getAvatars()
+		}
+	};
+	xhr.send();
+function checkEquipment() {
+	var eq = data['equipment']
+	var wp = JSON.parse(eq[0]['Tooltip'])
+	var poom = wp['Element_001']['value']['qualityValue']
+	var wplvl = parseInt(wp['Element_001']['value']['leftStr2'].substring(23,27))
+	if(!mark['서폿?']) {
+		mark['무기레벨']=wplvl
+		if(wplvl<mark['레벨']) cons.push('무기레벨: '+wplvl)
+		else if(wplvl>mark['레벨']+10) pros.push('무기레벨: '+wplvl)
+		if(poom>89) pros.push('무품 높음('+poom+')')
+		else if(poom<70) cons.push('무품 낮음('+poom+')')
+	}
+	var akpoom = 0
+	akpoom += JSON.parse(eq[6]['Tooltip'])['Element_001']['value']['qualityValue']*0.5
+	akpoom += JSON.parse(eq[7]['Tooltip'])['Element_001']['value']['qualityValue']*0.15
+	akpoom += JSON.parse(eq[8]['Tooltip'])['Element_001']['value']['qualityValue']*0.15
+	akpoom += JSON.parse(eq[9]['Tooltip'])['Element_001']['value']['qualityValue']*0.1
+	akpoom += JSON.parse(eq[10]['Tooltip'])['Element_001']['value']['qualityValue']*0.1
+	if(akpoom>90) pros.push('악세품질 높음: '+akpoom)
+	else if(akpoom<70) cons.push('악세품질 낮음: '+akpoom)
+}
+}
+function getAvatars() {
+	var xhr = new XMLHttpRequest();
+	xhr.responseType = 'json'
+	xhr.open("GET", 'https://developer-lostark.game.onstove.com/armories/characters/'+nickname+'/avatars', true);
+	xhr.setRequestHeader('accept', 'application/json');
+	xhr.setRequestHeader('authorization', key);
+	xhr.onreadystatechange = function(event) {
+		if(xhr.readyState==4) {
+			data.avatars = event.currentTarget.response
+			checkAvatars()
+			getEngravings()
+		}
+	};
+	xhr.send();
+function checkAvatars() {
+	var ava = data['avatars']
+	var zunap = 0
+	for(var i = 0; i < ava.length; i++) {
+		if(ava[i]['Grade']=="전설") zunap++
+	}
+	if(!mark['서폿?']) {
+		if(zunap>3) pros.push("전압풀셋")
+		else if(zunap==0) cons.push("전압x")
+	}
+}
+
+}
+function getEngravings() {
+	var xhr = new XMLHttpRequest();
+	xhr.responseType = 'json'
+	xhr.open("GET", 'https://developer-lostark.game.onstove.com/armories/characters/'+nickname+'/engravings', true);
+	xhr.setRequestHeader('accept', 'application/json');
+	xhr.setRequestHeader('authorization', key);
+	xhr.onreadystatechange = function(event) {
+		if(xhr.readyState==4) {
+			data.engravings = event.currentTarget.response
+			checkEngravings()
+			getCards()
+		}
+	};
+	xhr.send();
+function checkEngravings() {
+	var eng = data['engravings']
+	var engsum = 0
+	for(var i = 0; i <eng['Effects'].length;i++) {
+		engsum+= parseInt(eng['Effects'][i]['Name'].slice(-1))
+	}
+	if(engsum>16) pros.push("333332")
+	else if(engsum<16) cons.push("각인이 하나 비는데?")
+}
+
+}
+function getCards() {
+	var xhr = new XMLHttpRequest();
+	xhr.responseType = 'json'
+	xhr.open("GET", 'https://developer-lostark.game.onstove.com/armories/characters/'+nickname+'/cards', true);
+	xhr.setRequestHeader('accept', 'application/json');
+	xhr.setRequestHeader('authorization', key);
+	xhr.onreadystatechange = function(event) {
+		if(xhr.readyState==4) {
+			data.cards = event.currentTarget.response
+			checkCards()
+			getGems()
+		}
+	};
+	xhr.send();
+function checkCards() {
+	var card = data['cards']
+	var ef = card.Effects[0].Items
+	var efrank = 0
+	//0없음 1남바12 2세구18 3암구18 4세우 5라제 6세우라제 7세구30 8암구30 9창달30 10남바30
+	for (var i = 0; i <ef.length; i++) {
+		if(ef[i].Name =="남겨진 바람의 절벽 6세트 (30각성합계)") {
+			efrank = Math.max(efrank,10)
+		} else if(ef[i].Name =="창의 달인 6세트 (30각성합계)") {
+			efrank = Math.max(efrank,9)
+		} else if(ef[i].Name =="카제로스의 군단장 6세트 (30각성합계)") {
+			efrank = Math.max(efrank,8)
+		} else if(ef[i].Name =="세상을 구하는 빛 6세트 (30각성합계)") {
+			efrank = Math.max(efrank,7)	
+		} else if(ef[i].Name =="라제니스의 운명 2세트 (10각성합계)") {
+			efrank = Math.max(efrank,5)	
+		} else if(ef[i].Name =="세 우마르가 오리라 3세트 (15각성합계)") {
+			efrank = Math.max(efrank,4)	
+		} else if(ef[i].Name =="카제로스의 군단장 6세트 (18각성합계)") {
+			efrank = Math.max(efrank,3)	
+		} else if(ef[i].Name =="세상을 구하는 빛 6세트 (18각성합계)") {
+			efrank = Math.max(efrank,2)	
+		} else if(ef[i].Name =="남겨진 바람의 절벽 6세트 (12각성합계)") {
+			efrank = Math.max(efrank,1)	
+		}
+	}
+	if(card.Effects.length>1) {
+		var ef2 = card.Effects[1].Items
+		for (var i = 0; i <ef2.length; i++) {
+			if(ef[i].Name =="라제니스의 운명 2세트 (10각성합계)") {
+				if(efrank==5) efrank = 6
+			} else if(ef[i].Name =="세 우마르가 오리라 3세트 (15각성합계)") {
+				if(efrank==4) efrank = 6	
+			}
+		}
+	}
+	if(efrank==10) pros.push("남바30")
+	if(efrank==9) pros.push("창달30")
+	if(efrank==8) pros.push("암구30")
+	if(efrank==7) pros.push("세구30")
+	if(efrank==6) pros.push("세우라제")
+	if(efrank==5) cons.push("라제만 있음")
+	if(efrank==4) cons.push("세우만 있음")
+	if(efrank==3) pros.push("암구18")
+	if(efrank==2) cons.push("세구18")
+	if(efrank==1) cons.push("남바12")
+	if(mark['서폿?'] & efrank==0) cons.push("남바없음")
+	if(!mark['서폿?'] & efrank==0) cons.push("카드가 이상해요")
+}	
+}
+function getGems() {
+	var xhr = new XMLHttpRequest();
+	xhr.responseType = 'json'
+	xhr.open("GET", 'https://developer-lostark.game.onstove.com/armories/characters/'+nickname+'/gems', true);
+	xhr.setRequestHeader('accept', 'application/json');
+	xhr.setRequestHeader('authorization', key);
+	xhr.onreadystatechange = function(event) {
+		if(xhr.readyState==4) {
+			data.gems = event.currentTarget.response
+			checkGems()
+			end()
+		}
+	};
+	xhr.send();
+function checkGems() {
+	if (data['gems']==null) {
+		cons.push('보석이 없는데?')
+		return
+	}
+	var gem = data['gems'].Gems
+	var gemcount = {'10멸':0,'9멸':0,'8멸':0,'7멸':0,'6멸':0,'5멸':0,'10홍':0,'9홍':0,'8홍':0,'7홍':0,'6홍':0,'5홍':0}
+	for(var i = 0; i < gem.length; i++) {
+		var mh = gem[i].Name.slice(-17).substring(0,1)
+		if(gem[i].Level>4) {
+			gemcount[gem[i].Level+mh]++
+		}
+	}
+	if(!mark['서폿?']) {
+		if(gemcount['10멸']>0)pros.push('10멸 '+gemcount['10멸']+'개')
+		if(gemcount['9멸']>0)pros.push('9멸 '+gemcount['9멸']+'개')
+	}
+	if(gemcount['10홍']>0)pros.push('10홍 '+gemcount['10홍']+'개')
+	if(gemcount['9홍']>0)pros.push('9홍 '+gemcount['9홍']+'개')
+	if(gemcount['6멸']+gemcount['5멸']>0 &gemcount['10멸']+gemcount['9멸']+gemcount['8멸']==0) cons.push('7멸이하')
+	if(gemcount['6홍']+gemcount['5홍']>0 &gemcount['10홍']+gemcount['9홍']+gemcount['8홍']==0) cons.push('7홍이하')
+	if(!mark['서폿?']) {
+		if(gem.length<11) cons.push('보석의 갯수가?')
+	}
+}
+}
+</script>
